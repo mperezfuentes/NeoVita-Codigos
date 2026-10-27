@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NeoVita - Panel de Control y Generador de Claves</title>
+    <style>
+        body { background-color: #000814; color: #FFFFFF; font-family: 'Segoe UI', system-ui, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
+        .gen-card { background: rgba(3, 18, 38, 0.95); border: 2px solid #00B4D8; border-radius: 20px; padding: 30px; width: 100%; max-width: 450px; box-shadow: 0 0 40px rgba(0, 180, 216, 0.4); text-align: center; }
+        h2 { color: #00B4D8; margin-bottom: 20px; }
+        .input-field { width: 100%; padding: 12px; background: rgba(0,0,0,0.6); border: 1px solid #00B4D8; border-radius: 10px; color: white; font-size: 0.95rem; margin-bottom: 12px; }
+        .btn { width: 100%; padding: 12px; background: linear-gradient(135deg, #0077B6, #00B4D8); border: none; border-radius: 10px; color: white; font-weight: bold; font-size: 1rem; cursor: pointer; margin-bottom: 12px; }
+        .btn-pro { background: linear-gradient(135deg, #2A9D8F, #264653); }
+        .btn-wa { background: linear-gradient(135deg, #25D366, #128C7E); display: none; }
+        .result-box { background: rgba(0,0,0,0.6); border: 1px dashed #00B4D8; padding: 15px; border-radius: 10px; font-size: 1.2rem; font-family: monospace; color: #90E0EF; margin-top: 15px; word-break: break-all; }
+    </style>
+</head>
+<body>
+
+    <div class="gen-card">
+        <h2>📋 Registro y Generador</h2>
+        
+        <input type="text" id="cliente-nombre" class="input-field" placeholder="Nombre del Cliente">
+        <input type="text" id="cliente-fono" class="input-field" placeholder="WhatsApp (ej: 56912345678)">
+
+        <button class="btn" onclick="generarYRegistrar('TMP')">⚡ Generar Plan 30 Días ($10k)</button>
+        <button class="btn btn-pro" onclick="generarYRegistrar('PRO')">♾️ Generar Por Vida ($15k)</button>
+        
+        <!-- Botón extra para enviar directo por WhatsApp -->
+        <button id="btn-enviar-wa" class="btn btn-wa" onclick="enviarPorWhatsApp()">💬 Enviar Clave por WhatsApp</button>
+
+        <div id="resultado" class="result-box">Ingresa los datos y genera la clave...</div>
+    </div>
+
+    <script>
+        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxLZG0cm9QozErZhFOYGczPavqju4fS-aDDP4MT9leOpcwRdLgqtdUMmICm0--ShYRd/exec"; // Tu URL de GAS
+
+        let ultimoCodigoGenerado = "";
+        let ultimoClienteNombre = "";
+        let ultimoClienteFono = "";
+
+        async function generarYRegistrar(tipo) {
+            let nombre = document.getElementById('cliente-nombre').value.trim();
+            let telefono = document.getElementById('cliente-fono').value.trim();
+
+            if (!nombre || !telefono) {
+                alert("Por favor, ingresa el nombre y el WhatsApp del cliente antes de generar la clave.");
+                return;
+            }
+
+            document.getElementById('resultado').innerText = "Registrando en la Sheet...";
+            document.getElementById('btn-enviar-wa').style.display = "none";
+
+            try {
+                let response = await fetch(WEB_APP_URL, {
+                    method: "POST",
+                    headers: { "Content-Type": "text/plain" },
+                    body: JSON.stringify({
+                        action: "registrarYGenerar",
+                        nombre: nombre,
+                        telefono: telefono,
+                        tipo: tipo
+                    })
+                });
+
+                let result = await response.json();
+
+                if (result.status === "success") {
+                    let codigo = result.codigo;
+                    ultimoCodigoGenerado = codigo;
+                    ultimoClienteNombre = nombre;
+                    ultimoClienteFono = telefono;
+
+                    document.getElementById('resultado').innerText = codigo;
+
+                    // Copiar al portapapeles automáticamente
+                    navigator.clipboard.writeText(codigo).then(() => {
+                        alert(`✅ ¡Registrado en la Sheet!\nClave ${codigo} copiada al portapapeles.`);
+                    });
+
+                    // Mostrar el botón de WhatsApp
+                    document.getElementById('btn-enviar-wa').style.display = "block";
+
+                } else {
+                    alert("Error: " + result.message);
+                }
+            } catch (err) {
+                alert("Error de conexión al registrar en la nube.");
+                document.getElementById('resultado').innerText = "Error de red.";
+            }
+        }
+
+        function enviarPorWhatsApp() {
+            if (!ultimoCodigoGenerado || !ultimoClienteFono) return;
+            let mensaje = encodeURIComponent(`Hola ${ultimoClienteNombre}, ¡gracias por adquirir NeoVita~VitalSync! Tu clave de acceso es: *${ultimoCodigoGenerado}*. Ingrésala en la app para activar tu cuenta. ¡Que tengas excelente día!`);
+            window.open(`https://wa.me/${ultimoClienteFono}?text=${mensaje}`, '_blank');
+        }
+    </script>
+</body>
+</html>
