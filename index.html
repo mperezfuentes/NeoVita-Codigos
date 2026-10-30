@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex,nofollow">
+    <title>NeoVita - Panel de Control y Generador de Claves</title>
+    <style>
+        body { background-color: #000814; color: #FFFFFF; font-family: 'Segoe UI', system-ui, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
+        .gen-card { background: rgba(3, 18, 38, 0.95); border: 2px solid #00B4D8; border-radius: 20px; padding: 30px; width: 100%; max-width: 450px; box-shadow: 0 0 40px rgba(0, 180, 216, 0.4); text-align: center; }
+        h2 { color: #00B4D8; margin-bottom: 20px; }
+        .input-field { width: 100%; padding: 12px; background: rgba(0,0,0,0.6); border: 1px solid #00B4D8; border-radius: 10px; color: white; font-size: 0.95rem; margin-bottom: 12px; }
+        .btn { width: 100%; padding: 12px; background: linear-gradient(135deg, #0077B6, #00B4D8); border: none; border-radius: 10px; color: white; font-weight: bold; font-size: 1rem; cursor: pointer; margin-bottom: 12px; }
+        .btn-pro { background: linear-gradient(135deg, #2A9D8F, #264653); }
+        .btn-demo { background: linear-gradient(135deg, #7B2CBF, #5A189A); }
+        .btn-wa { background: linear-gradient(135deg, #25D366, #128C7E); display: none; }
+        .result-box { background: rgba(0,0,0,0.6); border: 1px dashed #00B4D8; padding: 15px; border-radius: 10px; font-size: 1.2rem; font-family: monospace; color: #90E0EF; margin-top: 15px; word-break: break-all; }
+    </style>
+</head>
+<body>
+
+    <div class="gen-card">
+        <h2>📋 Registro y Generador</h2>
+        
+        <input type="password" id="clave-admin" class="input-field" placeholder="Clave de administrador" autocomplete="off">
+        <input type="text" id="cliente-nombre" class="input-field" placeholder="Nombre del Cliente">
+        <input type="text" id="cliente-fono" class="input-field" placeholder="WhatsApp (ej: 56912345678)">
+
+        <select id="cliente-so" class="input-field">
+            <option value="Android">📱 Celular del cliente: Android</option>
+            <option value="iPhone">🍎 Celular del cliente: iPhone (iOS)</option>
+        </select>
+
+        <button class="btn btn-demo" onclick="generarYRegistrar('DEM')">🎁 Generar Demo 7 Días (gratis)</button>
+        <button class="btn" onclick="generarYRegistrar('TMP')">⚡ Generar Plan 30 Días ($10k)</button>
+        <button class="btn btn-pro" onclick="generarYRegistrar('PRO')">♾️ Generar Por Vida ($15k)</button>
+        
+        <!-- Botón extra para enviar directo por WhatsApp -->
+        <button id="btn-enviar-wa" class="btn btn-wa" onclick="enviarPorWhatsApp()">💬 Enviar Clave por WhatsApp</button>
+
+        <div id="resultado" class="result-box">Ingresa los datos y genera la clave...</div>
+    </div>
+
+    <script>
+        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxLZG0cm9QozErZhFOYGczPavqju4fS-aDDP4MT9leOpcwRdLgqtdUMmICm0--ShYRd/exec";
+
+        let ultimoCodigoGenerado = "";
+        let ultimoTipo = "";
+        let ultimoSO = "Android";
+        let ultimoClienteNombre = "";
+        let ultimoClienteFono = "";
+
+        // Deja solo dígitos y agrega 56 (Chile) si falta: 912345678 -> 56912345678
+        function limpiarFono(t) {
+            let d = (t || "").replace(/\D/g, "");
+            if (d.length === 9 && d.startsWith("9")) d = "56" + d;
+            return d;
+        }
+        function mostrarError(msg) {
+            document.getElementById('resultado').innerText = "❌ " + msg;
+            document.getElementById('btn-enviar-wa').style.display = "none";
+        }
+
+        async function generarYRegistrar(tipo) {
+            const claveAdmin = document.getElementById('clave-admin').value.trim();
+            const nombre = document.getElementById('cliente-nombre').value.trim();
+            const telefono = limpiarFono(document.getElementById('cliente-fono').value);
+
+            if (!claveAdmin) { alert("Ingresa tu clave de administrador."); return; }
+            if (!nombre || telefono.length < 11) {
+                alert("Ingresa el nombre y un WhatsApp válido del cliente (ej: 56912345678).");
+                return;
+            }
+
+            document.getElementById('resultado').innerText = "Registrando en la Sheet...";
+            document.getElementById('btn-enviar-wa').style.display = "none";
+
+            try {
+                const formData = new URLSearchParams();
+                formData.append("action", "registrarYGenerar");
+                formData.append("clave_admin", claveAdmin);
+                formData.append("nombre", nombre);
+                formData.append("telefono", telefono);
+                formData.append("tipo", tipo);
+
+                const response = await fetch(WEB_APP_URL, { method: "POST", body: formData });
+                const result = await response.json();
+
+                if (result.status === "success" && result.codigo) {
+                    ultimoCodigoGenerado = result.codigo;
+                    ultimoTipo = tipo;
+                    ultimoSO = document.getElementById('cliente-so').value;
+                    ultimoClienteNombre = nombre;
+                    ultimoClienteFono = telefono;
+                    document.getElementById('resultado').innerText = result.codigo;
+                    document.getElementById('btn-enviar-wa').style.display = "block";
+                    try { await navigator.clipboard.writeText(result.codigo); } catch (e) {}
+                    alert(`✅ ¡Registrado en la Sheet!\nClave ${result.codigo} copiada al portapapeles.`);
+                } else {
+                    mostrarError(result.message || "Respuesta desconocida del servidor");
+                }
+            } catch (err) {
+                console.error("Detalle del error:", err);
+                // Ya no se generan claves locales: no existen en la Sheet y la app las rechazaría.
+                mostrarError("No se pudo conectar con la Sheet. Revisa tu internet y vuelve a intentar.");
+            }
+        }
+
+        function construirMensaje() {
+            const url = "https://neovita-app-blond.vercel.app/";
+            const plan = { DEM: "🎁 Demo gratis de 7 días (comienzan a contar cuando la activas)",
+                           TMP: "⚡ Plan 30 días (comienza a contar cuando lo activas)",
+                           PRO: "♾️ Plan Por Vida" }[ultimoTipo] || "";
+            const pasos = ultimoSO === "iPhone"
+                ? `1️⃣ Abre este link en *Safari* (no en Chrome): ${url}
+2️⃣ Toca el botón *Compartir* (⬆️) y elige *"Agregar a pantalla de inicio"*.
+3️⃣ Abre *NeoVita* desde el ícono nuevo de tu pantalla.`
+                : `1️⃣ Abre este link en *Chrome*: ${url}
+2️⃣ Toca el botón *📲 Instalar* que aparece abajo (o el menú ⋮ → *Instalar aplicación*).
+3️⃣ Abre *NeoVita* desde el ícono nuevo de tu pantalla.`;
+            const gracias = ultimoTipo === "DEM" ? "¡gracias por probar NeoVita~VitalSync!" : "¡gracias por adquirir NeoVita~VitalSync!";
+            return `Hola ${ultimoClienteNombre} 👋, ${gracias}
+
+🔑 Tu clave de acceso: *${ultimoCodigoGenerado}*
+📦 Plan: ${plan}
+
+📲 *Cómo instalarla en ${ultimoSO}:*
+${pasos}
+
+✅ Luego ingresa tu clave y presiona *"Validar Licencia"*. La clave es personal y funciona en un solo celular.
+
+💡 Para que suene la alarma, mantén la app abierta con la pantalla encendida.
+
+Cualquier duda, escríbeme por aquí. 💙`;
+        }
+
+        function enviarPorWhatsApp() {
+            if (!ultimoCodigoGenerado || !ultimoClienteFono) return;
+            window.open(`https://wa.me/${ultimoClienteFono}?text=${encodeURIComponent(construirMensaje())}`, '_blank');
+        }
+    </script>
+</body>
+</html>
