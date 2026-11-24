@@ -31,9 +31,9 @@
             <option value="iPhone">🍎 Celular del cliente: iPhone (iOS)</option>
         </select>
 
-        <button class="btn btn-demo" onclick="generarYRegistrar('DEM')">🎁 Generar Demo 7 Días (gratis)</button>
-        <button class="btn" onclick="generarYRegistrar('TMP')">⚡ Generar Plan 30 Días ($10k)</button>
-        <button class="btn btn-pro" onclick="generarYRegistrar('PRO')">♾️ Generar Por Vida ($15k)</button>
+        <button class="btn btn-demo" onclick="generarYRegistrar('DEM')">🎁 Generar Demo 3 Días (gratis)</button>
+        <button class="btn" onclick="generarYRegistrar('TMP')">⚡ Generar Plan Mensual ($10.000/mes)</button>
+        <button class="btn btn-pro" onclick="generarYRegistrar('PRO')">⭐ Generar Plan Anual ($100.000/año)</button>
         
         <!-- Botón extra para enviar directo por WhatsApp -->
         <button id="btn-enviar-wa" class="btn btn-wa" onclick="enviarPorWhatsApp()">💬 Enviar Clave por WhatsApp</button>
@@ -108,9 +108,9 @@
 
         function construirMensaje() {
             const url = "https://neovita-app-blond.vercel.app/";
-            const plan = { DEM: "🎁 Demo gratis de 7 días (comienzan a contar cuando la activas)",
-                           TMP: "⚡ Plan 30 días (comienza a contar cuando lo activas)",
-                           PRO: "♾️ Plan Por Vida" }[ultimoTipo] || "";
+            const plan = { DEM: "🎁 Demo gratis de 3 días (comienzan a contar cuando la activas)",
+                           TMP: "⚡ Plan Mensual (comienza a contar cuando lo activas)",
+                           PRO: "♾️ Plan Plan Anual" }[ultimoTipo] || "";
             const pasos = ultimoSO === "iPhone"
                 ? `1️⃣ Abre este link en *Safari* (no en Chrome): ${url}
 2️⃣ Toca el botón *Compartir* (⬆️) y elige *"Agregar a pantalla de inicio"*.
